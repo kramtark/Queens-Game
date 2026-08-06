@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Queens — A Crown Logic Puzzle</title>
+<style>
+:root{
+  color-scheme:dark;
+  --ink:#171a21;
+  --ink-2:#222733;
+  --paper:#f4efe4;
+  --muted:#aaa79f;
+  --brass:#c8a75b;
+  --brass-light:#efd58d;
+  --danger:#e45f63;
+  --board-size:520px;
+  --coord:22px;
+  --gap:9px;
+}
+*{box-sizing:border-box}
+html{background:var(--ink)}
+body{
+  margin:0;
+  min-height:100svh;
+  overflow:hidden;
+  overscroll-behavior:none;
+  background:
+    radial-gradient(circle at 50% -20%,rgba(88,101,130,.22),transparent 44%),
+    linear-gradient(145deg,#171a21,#11141a 68%);
+  color:var(--paper);
+  font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+}
+button,select,input{font:inherit}
+button,select,.toggle{touch-action:manipulation}
+button,select{
+  border:1px solid rgba(244,239,228,.2);
+  background:#252b37;
+  color:var(--paper);
+  min-height:34px;
+  border-radius:7px;
+  padding:6px 10px;
+  font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+  font-size:12px;
+  letter-spacing:.025em;
+}
+button{cursor:pointer}
+button:hover:not(:disabled){border-color:rgba(239,213,141,.72);background:#2d3442}
+button:active:not(:disabled){transform:translateY(1px)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--brass-light);outline-offset:2px}
+button:disabled,select:disabled{opacity:.48;cursor:wait}
+button.primary{background:var(--brass);border-color:var(--brass);color:#17130b;font-weight:800}
+button.primary:hover:not(:disabled){background:var(--brass-light)}
+kbd{font:11px ui-monospace,SFMono-Regular,Consolas,monospace;border:1px solid #6d7079;border-bottom-width:2px;border-radius:4px;padding:1px 4px;background:#2a2f3a;color:#f4efe4}
+.app{
+  width:min(100%,760px);
+  margin:0 auto;
+  min-height:calc(100svh - max(20px,env(safe-area-inset-top)) - max(20px,env(safe-area-inset-bottom)));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:var(--gap);
+}
+.masthead{flex:0 0 auto;text-align:center;padding-top:1px}
+.masthead h1{
+  margin:0;
+  color:var(--paper);
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(22px,4vw,34px);
+  font-weight:600;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  line-height:1;
+}
+.masthead p{margin:5px 0 0;color:var(--brass-light);font:10px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase}
+.toolbar{
+  flex:0 0 auto;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.size-control{display:flex;align-items:center;gap:5px;color:#d2cec5;font:11px ui-monospace,SFMono-Regular,Consolas,monospace}
+.size-control select{padding-right:24px}
+.stat{
+  display:inline-flex;align-items:center;gap:5px;
+  min-height:34px;padding:5px 8px;border:1px solid rgba(244,239,228,.14);border-radius:7px;background:rgba(255,255,255,.035);
+  font:11px ui-monospace,SFMono-Regular,Consolas,monospace;color:#c8c5bd;
+}
+.stat strong{color:var(--paper);font-weight:700;min-width:34px;text-align:right}
+.toggle{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:5px 8px;border:1px solid rgba(244,239,228,.14);border-radius:7px;background:rgba(255,255,255,.035);font:11px ui-monospace,SFMono-Regular,Consolas,monospace;color:#d2cec5;cursor:pointer}
+.toggle input{accent-color:var(--brass);width:15px;height:15px;margin:0}
+.board-wrap{
+  flex:0 0 auto;
+  position:relative;
+  display:grid;
+  grid-template-columns:var(--coord) var(--board-size);
+  grid-template-rows:var(--coord) var(--board-size);
+  width:calc(var(--board-size) + var(--coord));
+  height:calc(var(--board-size) + var(--coord));
+  touch-action:none;
+  -webkit-touch-callout:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.col-labels{grid-column:2;grid-row:1;display:grid;align-items:center;text-align:center;color:#c7c3ba;font:10px ui-monospace,SFMono-Regular,Consolas,monospace}
+.row-labels{grid-column:1;grid-row:2;display:grid;align-items:center;text-align:center;color:#c7c3ba;font:10px ui-monospace,SFMono-Regular,Consolas,monospace}
+.board-frame{grid-column:2;grid-row:2;position:relative;width:var(--board-size);height:var(--board-size)}
+.board{
+  width:100%;height:100%;display:grid;
+  background:#e9e2d6;
+  border:3px solid #0e1116;
+  box-shadow:0 12px 32px rgba(0,0,0,.32),0 0 0 1px rgba(244,239,228,.14);
+  touch-action:none;
+  -webkit-touch-callout:none;
+  overflow:hidden;
+}
+.cell{
+  position:relative;
+  display:grid;place-items:center;
+  min-width:0;min-height:0;
+  color:#242831;
+  -webkit-touch-callout:none;
+  touch-action:none;
+  box-shadow:inset 0 0 0 .5px rgba(23,26,33,.14);
+  transition:filter .18s ease,opacity .18s ease;
+}
+.cell.sep-top{box-shadow:inset 0 3px 0 #171a21,inset 0 0 0 .5px rgba(23,26,33,.13)}
+.cell.sep-left{box-shadow:inset 3px 0 0 #171a21,inset 0 0 0 .5px rgba(23,26,33,.13)}
+.cell.sep-top.sep-left{box-shadow:inset 0 3px 0 #171a21,inset 3px 0 0 #171a21,inset 0 0 0 .5px rgba(23,26,33,.13)}
+.mark-x{
+  position:relative;z-index:2;
+  font:900 clamp(20px,calc(var(--board-size) / 18),38px) ui-monospace,SFMono-Regular,Consolas,monospace;
+  color:rgba(23,26,33,.96);
+  line-height:.88;
+  text-shadow:0 1px 0 rgba(255,255,255,.42), 0 0 1px rgba(23,26,33,.28);
+}
+.mark-x.auto-x{
+  color:rgba(23,26,33,.44);
+  text-shadow:0 1px 0 rgba(255,255,255,.26);
+}
+.crown{
+  position:relative;z-index:3;
+  align-self:center;justify-self:center;
+  display:grid;place-items:center;
+  width:68%;height:68%;
+  max-width:46px;max-height:46px;
+  min-width:0;min-height:0;
+  margin:auto;
+  box-sizing:border-box;
+  pointer-events:none;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.32)) drop-shadow(0 1px 1px rgba(0,0,0,.10));
+}
+.crown.just-placed{animation:crown-in .32s cubic-bezier(.2,1.5,.4,1)}
+.crown svg{width:100%;height:100%;display:block;overflow:hidden}
+.crown .crown-solid{fill:#171a21}
+.cell.impossible-group::before{
+  content:"";position:absolute;z-index:1;inset:0;
+  box-sizing:border-box;
+  background:rgba(184,42,52,.14);
+  pointer-events:none;
+  animation:live-error-pulse 1.35s ease-in-out infinite;
+}
+.cell.impossible-group.error-edge-top::before{border-top:3px solid rgba(211,53,63,.96)}
+.cell.impossible-group.error-edge-right::before{border-right:3px solid rgba(211,53,63,.96)}
+.cell.impossible-group.error-edge-bottom::before{border-bottom:3px solid rgba(211,53,63,.96)}
+.cell.impossible-group.error-edge-left::before{border-left:3px solid rgba(211,53,63,.96)}
+.row-labels .coord-error,.col-labels .coord-error{
+  color:#ff9b9b;font-weight:900;
+  text-shadow:0 0 8px rgba(216,58,67,.72);
+}
+@keyframes live-error-pulse{50%{background:rgba(184,42,52,.24)}}
+@keyframes crown-in{0%{transform:scale(.35) rotate(-8deg);opacity:0}70%{transform:scale(1.12) rotate(2deg)}100%{transform:scale(1);opacity:1}}
+.cell.conflict .crown::after{content:"";position:absolute;inset:-14%;border:3px solid var(--danger);border-radius:50%;animation:conflict-pulse 1s ease-in-out infinite}
+@keyframes conflict-pulse{50%{transform:scale(1.12);opacity:.55}}
+.board.hinting .cell:not(.spotlight){filter:saturate(.4) brightness(.54);opacity:.38}
+.cell.hint-target::after{
+  content:"";position:absolute;z-index:5;inset:8%;border:3px solid #f5d77e;border-radius:8px;
+  box-shadow:0 0 0 2px rgba(23,26,33,.6),0 0 14px rgba(245,215,126,.8);
+  pointer-events:none;animation:hint-ring 1.15s ease-in-out infinite;
+}
+@keyframes hint-ring{50%{transform:scale(.88);box-shadow:0 0 0 2px rgba(23,26,33,.65),0 0 23px rgba(245,215,126,.95)}}
+.note{
+  flex:0 0 auto;
+  width:100%;
+  min-height:58px;
+  border:1px solid rgba(239,213,141,.26);
+  border-left:4px solid var(--brass);
+  border-radius:7px;
+  background:rgba(36,42,53,.88);
+  padding:8px 10px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:5px 10px;
+  align-items:center;
+  box-shadow:inset 0 1px rgba(255,255,255,.035);
+}
+.note-text{font:13px/1.35 Georgia,"Times New Roman",serif;color:#f2ede3}
+.note-meta{grid-column:1;color:#aaa79f;font:10px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace}
+.note-actions{grid-column:2;grid-row:1 / span 2;display:flex;gap:6px;align-items:center}
+.note.error{border-left-color:var(--danger)}
+.help{
+  flex:0 0 auto;width:100%;
+  text-align:center;color:#9e9b94;
+  font:10px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+.help .touch-help{display:none}
+.win-overlay{
+  position:absolute;z-index:20;inset:0;
+  display:none;place-items:center;text-align:center;
+  background:rgba(17,20,26,.76);
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
+  color:var(--paper);
+}
+.win-overlay.show{display:grid}
+.win-card{padding:18px;border:1px solid rgba(239,213,141,.5);background:rgba(28,32,40,.92);box-shadow:0 16px 48px rgba(0,0,0,.38);border-radius:10px;max-width:80%}
+.win-card .small{font:10px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--brass-light)}
+.win-card h2{font:600 clamp(24px,5vw,42px) Georgia,"Times New Roman",serif;margin:5px 0 7px}
+.win-card p{font:12px ui-monospace,SFMono-Regular,Consolas,monospace;color:#d2cec5;margin:0 0 12px}
+.cell.win-lift .crown{animation:win-lift .68s cubic-bezier(.2,1.5,.4,1) both;animation-delay:var(--win-delay)}
+@keyframes win-lift{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-25%) scale(1.22);color:#f0d27f}100%{transform:translateY(0) scale(1);color:#b88c36}}
+.building-shield{position:fixed;inset:0;z-index:50;display:none;cursor:progress}
+body.building .building-shield{display:block}
+body.building .board{filter:saturate(.45) brightness(.7)}
+@media (hover:none) and (pointer:coarse){
+  .help .mouse-help{display:none}.help .touch-help{display:inline}
+  button,select{min-height:36px}
+}
+@media (max-width:620px){
+  :root{--gap:7px;--coord:18px}
+  body{padding-left:max(6px,env(safe-area-inset-left));padding-right:max(6px,env(safe-area-inset-right))}
+  .toolbar{gap:4px}
+  button,select{padding:5px 7px;font-size:10px}
+  .stat,.toggle{font-size:10px;padding:4px 6px}
+  .note{padding:7px 8px;min-height:52px}.note-text{font-size:12px}
+}
+@media (orientation:landscape) and (max-height:560px){
+  .masthead,.help{display:none}
+  :root{--gap:5px;--coord:17px}
+  .note{min-height:44px;padding:5px 8px}.note-text{font-size:11px}.note-meta{font-size:9px}
+  button,select,.stat,.toggle{min-height:30px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="masthead" id="masthead"><h1>Queens</h1><p>One crown · each rank · file · colour</p></header>
+  <div class="toolbar" id="toolbar" aria-label="Game controls">
+    <label class="size-control">SIZE
+      <select id="sizeSelect" aria-label="Board size">
+        <option value="7">7×7</option><option value="8" selected>8×8</option><option value="9">9×9</option><option value="10">10×10</option><option value="11">11×11</option><option value="12">12×12</option><option value="13">13×13</option>
+      </select>
+    </label>
+    <button id="newBtn" title="New puzzle (N)">New</button>
+    <button id="undoBtn" title="Undo (Ctrl/Cmd+Z)">Undo</button>
+    <button id="clearBtn">Clear</button>
+    <button id="hintBtn" class="primary" title="Hint (H)">Hint</button>
+    <button id="revealBtn">Reveal</button>
+    <label class="toggle"><input id="shadeToggle" type="checkbox" checked> Auto-X</label>
+    <label class="toggle"><input id="errorToggle" type="checkbox" checked> Live errors</label>
+    <span class="stat">TIME <strong id="timer">00:00</strong></span>
+    <span class="stat">HINTS <strong id="hintCount">0</strong></span>
+  </div>
+  <div class="board-wrap" id="boardWrap" aria-label="Queens puzzle board">
+    <div class="col-labels" id="colLabels"></div>
+    <div class="row-labels" id="rowLabels"></div>
+    <div class="board-frame">
+      <div class="board" id="board" role="grid" aria-label="Queens grid"></div>
+      <div class="win-overlay" id="winOverlay" aria-live="polite">
+        <div class="win-card"><div class="small">Position complete</div><h2>Crowned.</h2><p id="winStats"></p><button id="winNewBtn" class="primary">New puzzle</button></div>
+      </div>
+    </div>
+  </div>
+  <section class="note" id="note" aria-live="polite">
+    <div class="note-text" id="noteText">Place one crown in each row, column, and colour. Crowns may not touch.</div>
+    <div class="note-meta" id="noteMeta">Hints explain a deduction before changing the board.</div>
+    <div class="note-actions" id="noteActions"></div>
+  </section>
+  <div class="help" id="help">
+    <span class="mouse-help">Left-drag: sweep X · Left-click crown: lift · Right-click: crown · <kbd>H</kbd> hint · <kbd>N</kbd> new · <kbd>Esc</kbd> dismiss</span>
+    <span class="touch-help">Tap: empty → X → crown · Drag: sweep X · Hold: crown · Tap the board to dismiss a hint</span>
+  </div>
+</div>
+<div class="building-shield" aria-hidden="true"></div>
+<script id="queensEngineScript">
+(function(root){
+'use strict';
+
+const REGION_NAMES = ['Sky','Rose','Mint','Lavender','Apricot','Lagoon','Butter','Plum','Sage','Coral','Periwinkle','Harbor','Blush'];
+const REGION_COLORS = ['#b8d9ef','#efbcc9','#bfe2cd','#d4c4e8','#f2c7a7','#a9d9d5','#eadc9e','#d7b8d4','#cbd8b4','#efb2a8','#bfc9ea','#b8d2df','#ecc3d4'];
+
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function randInt(rng,n){ return Math.floor(rng()*n); }
+function shuffle(a,rng){
+  for(let i=a.length-1;i>0;i--){ const j=randInt(rng,i+1); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function bitCount(x){ x >>>= 0; let c=0; while(x){ x &= x-1; c++; } return c; }
+function idxOf(r,c,N){ return r*N+c; }
+function rcOf(i,N){ return [Math.floor(i/N), i%N]; }
+function orthNeighbors(i,N){
+  const r=Math.floor(i/N), c=i%N, a=[];
+  if(r) a.push(i-N); if(r+1<N) a.push(i+N); if(c) a.push(i-1); if(c+1<N) a.push(i+1);
+  return a;
+}
+function allNeighbors(i,N){
+  const r=Math.floor(i/N), c=i%N, a=[];
+  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+    if(!dr&&!dc) continue; const rr=r+dr,cc=c+dc; if(rr>=0&&rr<N&&cc>=0&&cc<N)a.push(rr*N+cc);
+  }
+  return a;
+}
+
+function generateTarget(N,rng){
+  const out=new Int16Array(N); out.fill(-1);
+  function rec(r,used){
+    if(r===N) return true;
+    const cols=shuffle(Array.from({length:N},(_,i)=>i),rng);
+    for(const c of cols){
+      if(used&(1<<c)) continue;
+      if(r>0 && Math.abs(c-out[r-1])<2) continue;
+      out[r]=c;
+      if(rec(r+1,used|(1<<c))) return true;
+      out[r]=-1;
+    }
+    return false;
+  }
+  if(!rec(0,0)) throw new Error('target generation failed');
+  return Array.from(out);
+}
+
+function regionsContiguous(regions,N){
+  for(let reg=0;reg<N;reg++){
+    let start=-1,total=0;
+    for(let i=0;i<regions.length;i++) if(regions[i]===reg){ if(start<0)start=i; total++; }
+    if(total===0) return false;
+    const seen=new Uint8Array(N*N), q=[start]; seen[start]=1; let count=0;
+    for(let p=0;p<q.length;p++){
+      const i=q[p]; count++;
+      for(const j of orthNeighbors(i,N)) if(!seen[j]&&regions[j]===reg){seen[j]=1;q.push(j);}
+    }
+    if(count!==total) return false;
+  }
+  return true;
+}
+
+function growRegions(N,target,rng){
+  const regions=new Int16Array(N*N); regions.fill(-1);
+  const sizes=new Int16Array(N);
+  const frontiers=Array.from({length:N},()=>[]);
+  for(let r=0;r<N;r++){
+    const i=idxOf(r,target[r],N); regions[i]=r; sizes[r]=1;
+  }
+  function refresh(reg){
+    const list=[];
+    for(let i=0;i<N*N;i++) if(regions[i]===reg){
+      for(const j of orthNeighbors(i,N)) if(regions[j]===-1) list.push(j);
+    }
+    frontiers[reg]=Array.from(new Set(list));
+  }
+  for(let reg=0;reg<N;reg++) refresh(reg);
+  let unassigned=N*N-N;
+  let guard=0;
+  while(unassigned && guard++<N*N*20){
+    const candidates=[];
+    for(let reg=0;reg<N;reg++) if(frontiers[reg].length) candidates.push(reg);
+    if(!candidates.length) break;
+    // Bias toward smaller regions, but retain irregularity.
+    candidates.sort((a,b)=>(sizes[a]+rng()*3)-(sizes[b]+rng()*3));
+    const pool=candidates.slice(0,Math.max(1,Math.ceil(candidates.length/2)));
+    const reg=pool[randInt(rng,pool.length)];
+    const frontier=frontiers[reg];
+    const k=randInt(rng,frontier.length), cell=frontier[k];
+    if(regions[cell]!==-1){ frontier.splice(k,1); continue; }
+    regions[cell]=reg; sizes[reg]++; unassigned--;
+    // Local refresh is cheap at these board sizes.
+    for(let rr=0;rr<N;rr++) refresh(rr);
+  }
+  if(unassigned) return null;
+  if(Array.from(sizes).some(s=>s<2)) return null;
+  return regions;
+}
+
+function makeAllowedByRow(N, regions, forbidden, forced){
+  const rows=Array.from({length:N},()=>[]);
+  for(let r=0;r<N;r++){
+    if(forced && forced[r]>=0){
+      const c=forced[r], i=idxOf(r,c,N);
+      if(!forbidden || !forbidden[i]) rows[r].push(c);
+    } else {
+      for(let c=0;c<N;c++) if(!forbidden || !forbidden[idxOf(r,c,N)]) rows[r].push(c);
+    }
+  }
+  return rows;
+}
+
+function solvePuzzle(N,regions,opts={}){
+  const forbidden=opts.forbidden||null;
+  const forced=opts.forced||null;
+  const target=opts.target||null;
+  const requireDifferent=!!opts.requireDifferent;
+  const maxSolutions=opts.maxSolutions||1;
+  const randomize=!!opts.randomize;
+  const rng=opts.rng||Math.random;
+  const allowed=makeAllowedByRow(N,regions,forbidden,forced);
+  const suffix=new Uint32Array(N+1);
+  for(let r=N-1;r>=0;r--){
+    let mask=suffix[r+1];
+    for(const c of allowed[r]) mask|=1<<regions[idxOf(r,c,N)];
+    suffix[r]=mask>>>0;
+  }
+  const fullMask=(1<<N)-1;
+  const placement=new Int16Array(N); placement.fill(-1);
+  let count=0, first=null, nodes=0;
+  const dead=new Set();
+  const stateBase=2**N;
+  function stateKey(r,usedCols,usedRegs,prevCol,diff){
+    return (((((r*stateBase+usedCols)*stateBase+usedRegs)*(N+1)+(prevCol+1))*2)+(diff?1:0));
+  }
+  function rec(r,usedCols,usedRegs,prevCol,diff){
+    nodes++;
+    if(count>=maxSolutions) return true;
+    if(r===N){
+      if(!requireDifferent || diff){
+        count++; if(!first) first=Array.from(placement);
+        return true;
+      }
+      return false;
+    }
+    const missingRegs=fullMask & ~usedRegs;
+    if((missingRegs & ~suffix[r])!==0) return false;
+    const key=stateKey(r,usedCols,usedRegs,prevCol,diff);
+    if(dead.has(key)) return false;
+
+    // Dynamic feasibility: after used columns/regions are removed, every remaining
+    // row must still have a cell, and every missing region/column must still occur.
+    let futureRegs=0, futureCols=0;
+    for(let rr=r;rr<N;rr++){
+      let rowOK=false;
+      for(const c of allowed[rr]){
+        const cb=1<<c; if(usedCols&cb) continue;
+        if(rr===r && r>0 && Math.abs(c-prevCol)<2) continue;
+        const rb=1<<regions[idxOf(rr,c,N)]; if(usedRegs&rb) continue;
+        rowOK=true; futureCols|=cb; futureRegs|=rb;
+      }
+      if(!rowOK){ dead.add(key); return false; }
+    }
+    if((missingRegs & ~futureRegs)!==0 || ((fullMask&~usedCols)&~futureCols)!==0){ dead.add(key); return false; }
+
+    const before=count;
+    let cols=allowed[r].slice();
+    if(randomize) shuffle(cols,rng);
+    if(target && requireDifferent){
+      cols.sort((a,b)=> (a===target[r]?1:0)-(b===target[r]?1:0));
+    }
+    for(const c of cols){
+      const cb=1<<c; if(usedCols&cb) continue;
+      if(r>0 && Math.abs(c-prevCol)<2) continue;
+      const reg=regions[idxOf(r,c,N)], rb=1<<reg; if(usedRegs&rb) continue;
+      placement[r]=c;
+      rec(r+1,usedCols|cb,usedRegs|rb,c,diff || (target ? c!==target[r] : false));
+      placement[r]=-1;
+      if(count>=maxSolutions) return true;
+    }
+    if(count===before) dead.add(key);
+    return count>before;
+  }
+  rec(0,0,0,-99,false);
+  return {count,solution:first,nodes};
+}
+
+function solvePuzzleMRV(N,regions,opts={}){
+  const forbidden=opts.forbidden||null, forced=opts.forced||null, target=opts.target||null;
+  const requireDifferent=!!opts.requireDifferent, maxSolutions=opts.maxSolutions||1;
+  const groupCells=Array.from({length:3*N},()=>[]), blocked=new Uint8Array(N*N);
+  const neighbours=Array.from({length:N*N},()=>[]);
+  for(let i=0;i<N*N;i++){
+    const r=Math.floor(i/N),c=i%N,reg=regions[i];
+    groupCells[r].push(i); groupCells[N+c].push(i); groupCells[2*N+reg].push(i);
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+      const rr=r+dr,cc=c+dc;if(rr>=0&&rr<N&&cc>=0&&cc<N)neighbours[i].push(rr*N+cc);
+    }
+  }
+  const placement=new Int16Array(N);placement.fill(-1);
+  let usedRows=0,usedCols=0,usedRegs=0,diff=false,count=0,first=null,nodes=0;
+  function canUse(i){
+    if((forbidden&&forbidden[i])||blocked[i])return false;
+    const r=Math.floor(i/N),c=i%N,reg=regions[i];
+    return !(usedRows&(1<<r))&&!(usedCols&(1<<c))&&!(usedRegs&(1<<reg));
+  }
+  function select(i){
+    const r=Math.floor(i/N),c=i%N,reg=regions[i];
+    usedRows|=1<<r;usedCols|=1<<c;usedRegs|=1<<reg;placement[r]=c;
+    for(const j of neighbours[i])blocked[j]++;
+  }
+  function deselect(i,oldDiff){
+    const r=Math.floor(i/N),c=i%N,reg=regions[i];
+    for(const j of neighbours[i])blocked[j]--;
+    placement[r]=-1;usedRows&=~(1<<r);usedCols&=~(1<<c);usedRegs&=~(1<<reg);diff=oldDiff;
+  }
+  let depth=0;
+  if(forced){
+    for(let r=0;r<N;r++)if(forced[r]>=0){
+      const i=idxOf(r,forced[r],N);if(!canUse(i))return {count:0,solution:null,nodes:0};
+      select(i);depth++;if(target&&forced[r]!==target[r])diff=true;
+    }
+  }
+  function rec(d){
+    nodes++;if(count>=maxSolutions)return;
+    if(d===N){if(!requireDifferent||diff){count++;if(!first)first=Array.from(placement);}return;}
+    let bestCells=null,bestCount=N+1;
+    for(let g=0;g<3*N;g++){
+      const type=Math.floor(g/N),ix=g%N;
+      if((type===0&&(usedRows&(1<<ix)))||(type===1&&(usedCols&(1<<ix)))||(type===2&&(usedRegs&(1<<ix))))continue;
+      const cells=[];for(const i of groupCells[g])if(canUse(i))cells.push(i);
+      if(!cells.length)return;
+      if(cells.length<bestCount){bestCount=cells.length;bestCells=cells;if(bestCount===1)break;}
+    }
+    if(target&&requireDifferent)bestCells.sort((a,b)=>((a%N===target[Math.floor(a/N)])?1:0)-((b%N===target[Math.floor(b/N)])?1:0));
+    for(const i of bestCells){
+      if(!canUse(i))continue;
+      const oldDiff=diff,r=Math.floor(i/N),c=i%N;
+      select(i);if(target&&c!==target[r])diff=true;rec(d+1);deselect(i,oldDiff);
+      if(count>=maxSolutions)return;
+    }
+  }
+  rec(depth);return {count,solution:first,nodes};
+}
+
+function regionSizes(regions,N){
+  const s=new Int16Array(N); for(const x of regions)s[x]++; return s;
+}
+function donorConnectedAfterRemoval(regions,N,cell,donor,donorSize){
+  const attached=orthNeighbors(cell,N).filter(j=>regions[j]===donor);
+  if(attached.length<=1) return true;
+  const seen=new Uint8Array(N*N), q=[attached[0]]; seen[attached[0]]=1; let count=0;
+  for(let p=0;p<q.length;p++){
+    const i=q[p]; count++;
+    for(const j of orthNeighbors(i,N)) if(j!==cell&&!seen[j]&&regions[j]===donor){seen[j]=1;q.push(j);}
+  }
+  return count===donorSize-1;
+}
+function legalMove(regions,N,targetMask,sizes,cell,recv,maxSize){
+  const donor=regions[cell];
+  if(donor===recv || targetMask[cell]) return false;
+  if(sizes[donor]<=2 || sizes[recv]>=maxSize) return false;
+  if(!orthNeighbors(cell,N).some(j=>regions[j]===recv)) return false;
+  return donorConnectedAfterRemoval(regions,N,cell,donor,sizes[donor]);
+}
+function reassign(regions,sizes,cell,recv){
+  const donor=regions[cell];
+  if(donor===recv)return;
+  regions[cell]=recv; sizes[donor]--; sizes[recv]++;
+}
+function repairUnique(N,target,regions,rng,maxRepairs=1200,onProgress=null){
+  const targetMask=new Uint8Array(N*N);
+  for(let r=0;r<N;r++) targetMask[idxOf(r,target[r],N)]=1;
+  const sizes=regionSizes(regions,N);
+  let repairs=0,jiggles=0,lastProgress=0;
+  while(repairs<maxRepairs){
+    const rival=(N>=12&&repairs>=160?solvePuzzleMRV:solvePuzzle)(N,regions,{target,requireDifferent:true,maxSolutions:1});
+    if(!rival.solution) return {ok:true,repairs,jiggles,nodes:rival.nodes};
+    const rows=shuffle(Array.from({length:N},(_,r)=>r).filter(r=>rival.solution[r]!==target[r]),rng);
+    let moved=false;
+    const maxSize=Math.ceil(3*N);
+    for(const r of rows){
+      const cell=idxOf(r,rival.solution[r],N), donor=regions[cell];
+      const recvs=shuffle(Array.from(new Set(orthNeighbors(cell,N).map(j=>regions[j]).filter(x=>x!==donor))),rng);
+      for(const recv of recvs){
+        if(legalMove(regions,N,targetMask,sizes,cell,recv,maxSize)){
+          reassign(regions,sizes,cell,recv); moved=true; repairs++; break;
+        }
+      }
+      if(moved) break;
+    }
+    if(!moved){
+      const border=[];
+      for(let i=0;i<N*N;i++){
+        if(targetMask[i]) continue;
+        const donor=regions[i];
+        for(const recv of new Set(orthNeighbors(i,N).map(j=>regions[j]).filter(x=>x!==donor))){
+          if(legalMove(regions,N,targetMask,sizes,i,recv,Math.ceil(3*N))) border.push([i,recv]);
+        }
+      }
+      if(!border.length) return {ok:false,reason:'stuck',repairs,jiggles};
+      const [cell,recv]=border[randInt(rng,border.length)]; reassign(regions,sizes,cell,recv); jiggles++; repairs++;
+    }
+    if(onProgress && repairs-lastProgress>=64){lastProgress=repairs;onProgress({phase:'repair',repairs,jiggles});}
+  }
+  return {ok:false,reason:'repair-limit',repairs,jiggles};
+}
+
+function crownInfo(N,regions,marks){
+  const row=new Int16Array(N); row.fill(-1);
+  const col=new Int16Array(N); col.fill(-1);
+  const reg=new Int16Array(N); reg.fill(-1);
+  const crowns=[];
+  for(let i=0;i<N*N;i++) if(marks[i]===2){
+    const [r,c]=rcOf(i,N); crowns.push(i);
+    if(row[r]===-1)row[r]=i; else row[r]=-2;
+    if(col[c]===-1)col[c]=i; else col[c]=-2;
+    const g=regions[i]; if(reg[g]===-1)reg[g]=i; else reg[g]=-2;
+  }
+  return {row,col,reg,crowns};
+}
+function candidateModel(N,regions,marks){
+  const info=crownInfo(N,regions,marks);
+  const cand=new Uint8Array(N*N);
+  const attacked=new Uint8Array(N*N);
+  for(const cr of info.crowns){
+    const [rr,cc]=rcOf(cr,N), rg=regions[cr];
+    for(let i=0;i<N*N;i++){
+      const [r,c]=rcOf(i,N);
+      if(r===rr||c===cc||regions[i]===rg||Math.max(Math.abs(r-rr),Math.abs(c-cc))===1) attacked[i]=1;
+    }
+  }
+  for(let i=0;i<N*N;i++) if(marks[i]===0&&!attacked[i]) cand[i]=1;
+  const groups={row:Array.from({length:N},()=>[]),column:Array.from({length:N},()=>[]),region:Array.from({length:N},()=>[])};
+  const has={row:new Uint8Array(N),column:new Uint8Array(N),region:new Uint8Array(N)};
+  for(const i of info.crowns){ const [r,c]=rcOf(i,N); has.row[r]=1;has.column[c]=1;has.region[regions[i]]=1; }
+  for(let i=0;i<N*N;i++) if(cand[i]){ const [r,c]=rcOf(i,N); groups.row[r].push(i);groups.column[c].push(i);groups.region[regions[i]].push(i); }
+  return {cand,attacked,groups,has,info};
+}
+function groupId(type,i,N,regions){ const [r,c]=rcOf(i,N); return type==='row'?r:type==='column'?c:regions[i]; }
+function groupCells(type,g,N,regions){
+  const a=[]; for(let i=0;i<N*N;i++) if(groupId(type,i,N,regions)===g)a.push(i); return a;
+}
+function groupPhrase(type,g,capital=false){
+  let s=type==='row'?`row ${g+1}`:type==='column'?`column ${String.fromCharCode(65+g)}`:`the ${REGION_NAMES[g]} region`;
+  return capital?s[0].toUpperCase()+s.slice(1):s;
+}
+function groupList(type,gs,capital=false){
+  let s;
+  if(type==='row') s=`rows ${gs.map(g=>g+1).join(' and ')}`;
+  else if(type==='column') s=`columns ${gs.map(g=>String.fromCharCode(65+g)).join(' and ')}`;
+  else s=`the ${gs.map(g=>REGION_NAMES[g]).join(' and ')} regions`;
+  return capital?s[0].toUpperCase()+s.slice(1):s;
+}
+function squareName(i,N){ const [r,c]=rcOf(i,N); return `row ${r+1}, column ${String.fromCharCode(65+c)}`; }
+function actionableXs(cells,marks,model){ return cells.filter(i=>marks[i]===0 && (!model || model.cand[i])); }
+
+function contradictionGroups(N,regions,marks){
+  const model=candidateModel(N,regions,marks), bad=[];
+  for(const type of ['row','column','region']) for(let g=0;g<N;g++){
+    if(!model.has[type][g] && model.groups[type][g].length===0) bad.push([type,g]);
+  }
+  // Crown conflicts also create contradiction.
+  const conflicts=findConflicts(N,regions,marks);
+  return {bad,conflicts,model};
+}
+
+function findDeduction(N,regions,marks){
+  const model=candidateModel(N,regions,marks);
+  // 1: last square standing
+  for(const type of ['row','column','region']) for(let g=0;g<N;g++){
+    if(!model.has[type][g] && model.groups[type][g].length===1){
+      const t=model.groups[type][g][0];
+      return {kind:'crown',technique:'Last square standing',reason:model.groups[type][g].slice(),targets:[t],text:`Only ${squareName(t,N)} is still open in ${groupPhrase(type,g)}. It must hold the crown.`};
+    }
+  }
+  const pairs=[['region','row'],['region','column'],['row','region'],['column','region'],['row','column'],['column','row']];
+  // helper locked sets
+  function locked(k){
+    for(const [A,B] of pairs){
+      const eligible=[];
+      for(let g=0;g<N;g++) if(!model.has[A][g]&&model.groups[A][g].length) eligible.push(g);
+      const combos=[];
+      function comb(start,arr){ if(arr.length===k){combos.push(arr.slice());return;} for(let j=start;j<eligible.length;j++){arr.push(eligible[j]);comb(j+1,arr);arr.pop();} }
+      comb(0,[]);
+      for(const gs of combos){
+        const union=new Set(), reason=[];
+        for(const g of gs) for(const i of model.groups[A][g]){ union.add(groupId(B,i,N,regions)); reason.push(i); }
+        if(union.size!==k) continue;
+        const member=new Set(); for(const g of gs) for(const i of groupCells(A,g,N,regions)) member.add(i);
+        let target=[]; for(const bg of union) target.push(...groupCells(B,bg,N,regions).filter(i=>!member.has(i)));
+        target=actionableXs(Array.from(new Set(target)),marks,model);
+        if(!target.length) continue;
+        const bGroups=Array.from(union);
+        let text;
+        if(k===1) text=`Every square still open for ${groupPhrase(A,gs[0])} sits in ${groupPhrase(B,bGroups[0])}. So ${groupPhrase(B,bGroups[0],true)} is spoken for — the rest of it can be crossed out.`;
+        else text=`${groupList(A,gs,true)} are confined to ${groupList(B,bGroups)}. Those ${k} groups must contain their ${k} crowns, so every other square there can be crossed out.`;
+        return {kind:'x',technique:`Locked set (${k})`,reason:Array.from(new Set(reason)),targets:target,text};
+      }
+    }
+    return null;
+  }
+  let d=locked(1); if(d)return d;
+  // 3: touch rule
+  for(const type of ['row','column','region']) for(let g=0;g<N;g++){
+    if(model.has[type][g]) continue;
+    const cs=model.groups[type][g]; if(!cs.length) continue;
+    let inter=null;
+    for(const c of cs){
+      const set=new Set(allNeighbors(c,N));
+      inter=inter===null?set:new Set(Array.from(inter).filter(x=>set.has(x)));
+      if(!inter.size) break;
+    }
+    const targets=inter?Array.from(inter).filter(i=>marks[i]===0&&model.cand[i]):[];
+    if(targets.length){
+      const t=targets[0];
+      return {kind:'x',technique:'Touch rule',reason:cs.slice(),targets:[t],text:`Every possible crown square in ${groupPhrase(type,g)} touches ${squareName(t,N)}. Wherever that crown goes, this square would be adjacent, so it can be crossed out.`};
+    }
+  }
+  d=locked(2); if(d)return d;
+  // 5: trial elimination
+  for(let i=0;i<N*N;i++) if(model.cand[i]){
+    const trial=new Int8Array(marks); trial[i]=2;
+    const c=contradictionGroups(N,regions,trial);
+    if(c.conflicts.length || c.bad.length){
+      let why='it immediately creates a conflict';
+      if(c.bad.length){ const [type,g]=c.bad[0]; why=`it leaves ${groupPhrase(type,g)} with no possible crown square`; }
+      return {kind:'x',technique:'Trial elimination',reason:[i],targets:[i],text:`Suppose ${squareName(i,N)} held a crown. Then ${why}. That square cannot be a crown, so cross it out.`};
+    }
+  }
+  d=locked(3); if(d)return d;
+  d=locked(4); if(d)return d;
+  return null;
+}
+
+function applyDeduction(marks,d){
+  const next=new Int8Array(marks);
+  if(d.kind==='crown') for(const i of d.targets) next[i]=2;
+  else for(const i of d.targets) if(next[i]===0) next[i]=1;
+  return next;
+}
+function marksSolved(N,regions,marks){
+  let crowns=0; for(const x of marks) if(x===2)crowns++;
+  return crowns===N && findConflicts(N,regions,marks).length===0;
+}
+function driveHints(N,regions,target,maxSteps=1000){
+  let marks=new Int8Array(N*N),steps=0;
+  while(!marksSolved(N,regions,marks)&&steps<maxSteps){
+    const d=findDeduction(N,regions,marks);
+    if(!d) return {ok:false,steps,marks,reason:'fallback'};
+    for(const i of d.targets){
+      const [r,c]=rcOf(i,N), isTarget=target[r]===c;
+      if(d.kind==='crown'&&!isTarget) return {ok:false,steps,marks,reason:'wrong-crown',deduction:d};
+      if(d.kind==='x'&&isTarget) return {ok:false,steps,marks,reason:'wrong-x',deduction:d};
+    }
+    marks=applyDeduction(marks,d); steps++;
+  }
+  return {ok:marksSolved(N,regions,marks),steps,marks,reason:marksSolved(N,regions,marks)?'solved':'limit'};
+}
+
+function validatePuzzle(N,target,regions){
+  const sizes=regionSizes(regions,N);
+  const targetRegions=new Int16Array(N); targetRegions.fill(0);
+  let noAdjacent=true;
+  for(let r=0;r<N;r++){
+    targetRegions[regions[idxOf(r,target[r],N)]]++;
+    if(r&&Math.abs(target[r]-target[r-1])<2) noAdjacent=false;
+  }
+  const sol=(N>=12?solvePuzzleMRV:solvePuzzle)(N,regions,{maxSolutions:2});
+  return {
+    contiguous:regionsContiguous(regions,N),
+    minSize:Math.min(...sizes),
+    targetOneEach:Array.from(targetRegions).every(x=>x===1),
+    noAdjacent,
+    unique:sol.count===1,
+    solutionCount:sol.count,
+    nodes:sol.nodes
+  };
+}
+
+function generatePuzzle(N,options={}){
+  const seed=(options.seed==null?(Date.now()^Math.floor(Math.random()*0xffffffff)):options.seed)>>>0;
+  const rng=mulberry32(seed);
+  const maxAttempts=options.maxAttempts||80;
+  const onProgress=typeof options.onProgress==='function'?options.onProgress:null;
+  const started=(typeof performance!=='undefined'?performance.now():Date.now());
+  let lastReason='';
+  for(let attempt=1;attempt<=maxAttempts;attempt++){
+    if(onProgress)onProgress({phase:'attempt',attempt,maxAttempts});
+    const target=generateTarget(N,rng);
+    const regions=growRegions(N,target,rng);
+    if(!regions){lastReason='grow';continue;}
+    const repaired=repairUnique(N,target,regions,rng,options.maxRepairs||1600,onProgress);
+    if(!repaired.ok){lastReason=repaired.reason;continue;}
+    const valid=validatePuzzle(N,target,regions);
+    if(!valid.unique||!valid.contiguous||!valid.targetOneEach||valid.minSize<2||!valid.noAdjacent){lastReason='validate';continue;}
+    const hintRun=driveHints(N,regions,target);
+    if(!hintRun.ok){lastReason=hintRun.reason;continue;}
+    const ended=(typeof performance!=='undefined'?performance.now():Date.now());
+    return {N,target,regions:Array.from(regions),seed,attempts:attempt,repairs:repaired.repairs,jiggles:repaired.jiggles,hintSteps:hintRun.steps,generationMs:ended-started};
+  }
+  throw new Error(`Unable to generate ${N}x${N} puzzle after ${maxAttempts} attempts (${lastReason})`);
+}
+
+function forcedForbiddenFromMarks(N,marks){
+  const forced=new Int16Array(N); forced.fill(-1); const forbidden=new Uint8Array(N*N);
+  for(let i=0;i<N*N;i++){
+    const [r,c]=rcOf(i,N);
+    if(marks[i]===1) forbidden[i]=1;
+    else if(marks[i]===2){ if(forced[r]!==-1&&forced[r]!==c) return {invalid:true,forced,forbidden}; forced[r]=c; }
+  }
+  return {invalid:false,forced,forbidden};
+}
+function solveWithMarks(N,regions,marks,maxSolutions=1){
+  const ff=forcedForbiddenFromMarks(N,marks); if(ff.invalid)return {count:0,solution:null,nodes:0};
+  return solvePuzzle(N,regions,{forced:ff.forced,forbidden:ff.forbidden,maxSolutions});
+}
+function diagnoseContradiction(N,regions,marks){
+  if(solveWithMarks(N,regions,marks,1).solution) return null;
+  const crowns=[],xs=[]; for(let i=0;i<N*N;i++){if(marks[i]===2)crowns.push(i);else if(marks[i]===1)xs.push(i);}
+  for(const i of crowns){ const t=new Int8Array(marks);t[i]=0;if(solveWithMarks(N,regions,t,1).solution)return {type:'crown',cell:i,text:`The crown on ${squareName(i,N)} can't be right.`}; }
+  for(const i of xs){ const t=new Int8Array(marks);t[i]=0;if(solveWithMarks(N,regions,t,1).solution)return {type:'x',cell:i,text:`The X on ${squareName(i,N)} is wrong: that square has to hold a crown.`}; }
+  const solved=solvePuzzle(N,regions,{maxSolutions:1}).solution;
+  if(solved){
+    for(const i of crowns){ const [r,c]=rcOf(i,N); if(solved[r]!==c) return {type:'multiple',cell:i,text:`Several marks contradict each other. One specific problem is the crown on ${squareName(i,N)}.`}; }
+    for(const i of xs){ const [r,c]=rcOf(i,N); if(solved[r]===c) return {type:'multiple',cell:i,text:`Several marks contradict each other. One specific problem is the X on ${squareName(i,N)}.`}; }
+  }
+  const focus=crowns[0] ?? xs[0] ?? null;
+  return {type:'multiple',cell:focus,text:`Several marks contradict each other. ${focus==null?'Undo a few recent moves and try again.':'This highlighted mark is one of the marks that still needs attention.'}`};
+}
+function getHint(N,regions,marks){
+  const diag=diagnoseContradiction(N,regions,marks);
+  if(diag) return {kind:'error',technique:'Contradiction',reason:diag.cell==null?[]:[diag.cell],targets:diag.cell==null?[]:[diag.cell],text:diag.text};
+  const d=findDeduction(N,regions,marks); if(d)return d;
+  const sol=solveWithMarks(N,regions,marks,1).solution;
+  if(sol){
+    for(let r=0;r<N;r++){ const i=idxOf(r,sol[r],N); if(marks[i]!==2)return {kind:'crown',technique:'Reveal',reason:[i],targets:[i],text:`No deduction in the current ladder is available. A valid completion places a crown at ${squareName(i,N)}.`}; }
+  }
+  return null;
+}
+
+function findConflicts(N,regions,marks){
+  const out=new Set();
+  const rows=Array.from({length:N},()=>[]),cols=Array.from({length:N},()=>[]),regs=Array.from({length:N},()=>[]),crowns=[];
+  for(let i=0;i<N*N;i++) if(marks[i]===2){const[r,c]=rcOf(i,N);rows[r].push(i);cols[c].push(i);regs[regions[i]].push(i);crowns.push(i);}
+  for(const groups of [rows,cols,regs]) for(const a of groups) if(a.length>1) for(const i of a)out.add(i);
+  for(let a=0;a<crowns.length;a++) for(let b=a+1;b<crowns.length;b++){
+    const [r1,c1]=rcOf(crowns[a],N),[r2,c2]=rcOf(crowns[b],N);
+    if(Math.max(Math.abs(r1-r2),Math.abs(c1-c2))===1){out.add(crowns[a]);out.add(crowns[b]);}
+  }
+  return Array.from(out);
+}
+
+const api={solvePuzzleMRV,REGION_NAMES,REGION_COLORS,mulberry32,generateTarget,growRegions,solvePuzzle,repairUnique,regionsContiguous,candidateModel,contradictionGroups,findDeduction,applyDeduction,driveHints,validatePuzzle,generatePuzzle,solveWithMarks,diagnoseContradiction,getHint,findConflicts,marksSolved,squareName,idxOf,rcOf};
+if(typeof module!=='undefined'&&module.exports) module.exports=api;
+root.QueensEngine=api;
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+<script>
+(function(){
+'use strict';
+const E=window.QueensEngine;
+const $=id=>document.getElementById(id);
+const app=$('app'),masthead=$('masthead'),toolbar=$('toolbar'),boardWrap=$('boardWrap'),board=$('board'),colLabels=$('colLabels'),rowLabels=$('rowLabels');
+const note=$('note'),noteText=$('noteText'),noteMeta=$('noteMeta'),noteActions=$('noteActions'),help=$('help');
+const sizeSelect=$('sizeSelect'),newBtn=$('newBtn'),undoBtn=$('undoBtn'),clearBtn=$('clearBtn'),hintBtn=$('hintBtn'),revealBtn=$('revealBtn'),shadeToggle=$('shadeToggle'),errorToggle=$('errorToggle');
+function readBooleanParam(params,names,fallback){
+  for(const name of names){
+    if(!params.has(name))continue;
+    const raw=String(params.get(name)).trim().toLowerCase();
+    if(['1','true','yes','on','enabled'].includes(raw))return true;
+    if(['0','false','no','off','disabled'].includes(raw))return false;
+  }
+  return fallback;
+}
+function applyUrlOptions(){
+  const params=new URLSearchParams(location.search);
+  const requestedSize=Number(params.get('size')??params.get('grid')??params.get('gridSize'));
+  if(Number.isInteger(requestedSize)&&requestedSize>=7&&requestedSize<=13)sizeSelect.value=String(requestedSize);
+  shadeToggle.checked=readBooleanParam(params,['autox','autoX','auto-x','auto_x'],shadeToggle.checked);
+  errorToggle.checked=readBooleanParam(params,['errors','liveerrors','liveErrors','live-errors','live_errors'],errorToggle.checked);
+}
+const timerEl=$('timer'),hintCountEl=$('hintCount'),winOverlay=$('winOverlay'),winStats=$('winStats'),winNewBtn=$('winNewBtn');
+let puzzle=null,regions=null,marks=new Int8Array(0),history=[],liveHint=null,building=false,revealed=false,won=false;
+let activeGenerationWorkers=[];
+function randomUint32(){
+  if(globalThis.crypto&&typeof globalThis.crypto.getRandomValues==='function'){
+    const a=new Uint32Array(1);globalThis.crypto.getRandomValues(a);return a[0]>>>0;
+  }
+  const perf=typeof performance!=='undefined'?Math.floor(performance.now()*1000):0;
+  return (Date.now()^perf^Math.floor(Math.random()*0xffffffff))>>>0;
+}
+function terminateGenerationWorkers(){
+  for(const worker of activeGenerationWorkers){try{worker.terminate()}catch{}}
+  activeGenerationWorkers=[];
+}
+function generatorWorkerCount(N){
+  const cores=Math.max(1,Number(navigator.hardwareConcurrency)||2);
+  return N>=10?Math.min(2,Math.max(1,cores-1)):1;
+}
+function generateOnMainThread(N,onProgress){
+  return new Promise((resolve,reject)=>setTimeout(()=>{
+    try{resolve(E.generatePuzzle(N,{seed:randomUint32(),maxAttempts:80,maxRepairs:N>=12?3000:2200,onProgress}));}
+    catch(err){reject(err);}
+  },30));
+}
+function generateRandomPuzzle(N,onProgress){
+  const engineScript=document.getElementById('queensEngineScript');
+  if(!engineScript||typeof Worker==='undefined'||typeof Blob==='undefined'||!URL||!URL.createObjectURL){
+    return generateOnMainThread(N,p=>onProgress&&onProgress({worker:1,workers:1,progress:p,fallback:true}));
+  }
+  terminateGenerationWorkers();
+  const workerSource=engineScript.textContent+`\nself.onmessage=function(event){
+    const E=self.QueensEngine, data=event.data;
+    try{
+      const puzzle=E.generatePuzzle(data.N,{seed:data.seed,maxAttempts:80,maxRepairs:data.maxRepairs,onProgress:function(progress){self.postMessage({type:'progress',progress:progress});}});
+      self.postMessage({type:'result',puzzle:puzzle});
+    }catch(error){self.postMessage({type:'error',message:error&&error.message?error.message:String(error)});}
+  };`;
+  let url;
+  try{url=URL.createObjectURL(new Blob([workerSource],{type:'text/javascript'}));}
+  catch(err){return generateOnMainThread(N,p=>onProgress&&onProgress({worker:1,workers:1,progress:p,fallback:true}));}
+  const count=generatorWorkerCount(N);
+  return new Promise((resolve,reject)=>{
+    let settled=false,failures=0;
+    const cleanup=()=>{
+      terminateGenerationWorkers();
+      try{URL.revokeObjectURL(url)}catch{}
+    };
+    for(let index=0;index<count;index++){
+      let worker;
+      try{worker=new Worker(url);}catch(err){failures++;if(failures===count&&!settled){settled=true;cleanup();generateOnMainThread(N,p=>onProgress&&onProgress({worker:1,workers:1,progress:p,fallback:true})).then(resolve,reject);}continue;}
+      activeGenerationWorkers.push(worker);
+      worker.onmessage=event=>{
+        if(settled)return;
+        const data=event.data||{};
+        if(data.type==='progress'){
+          if(onProgress)onProgress({worker:index+1,workers:count,progress:data.progress});
+        }else if(data.type==='result'){
+          settled=true;const puzzle=data.puzzle;cleanup();resolve(puzzle);
+        }else if(data.type==='error'){
+          failures++;worker.terminate();
+          if(failures===count){settled=true;cleanup();reject(new Error(data.message||'Puzzle generation failed'));}
+        }
+      };
+      worker.onerror=event=>{
+        if(settled)return;
+        failures++;try{worker.terminate()}catch{}
+        if(failures===count){settled=true;cleanup();reject(new Error(event.message||'Puzzle worker failed'));}
+      };
+      worker.postMessage({N,seed:randomUint32(),maxRepairs:N>=12?3000:2200});
+    }
+  });
+}
+let timerStartedAt=0,elapsedBefore=0,timerHandle=0,hintsUsed=0,gesture=null;
+
+function sameMarks(a,b){ if(a.length!==b.length)return false;for(let i=0;i<a.length;i++)if(a[i]!==b[i])return false;return true; }
+function formatTime(ms){ const total=Math.floor(ms/1000),m=Math.floor(total/60),s=total%60;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+function currentElapsed(){ return elapsedBefore+(timerStartedAt?performance.now()-timerStartedAt:0); }
+function paintTimer(){timerEl.textContent=formatTime(currentElapsed())}
+function startTimer(){ if(timerStartedAt||won||revealed)return; timerStartedAt=performance.now();timerHandle=setInterval(paintTimer,250);paintTimer(); }
+function stopTimer(){ if(timerStartedAt){elapsedBefore+=performance.now()-timerStartedAt;timerStartedAt=0;}clearInterval(timerHandle);timerHandle=0;paintTimer(); }
+function resetTimer(){clearInterval(timerHandle);timerHandle=0;timerStartedAt=0;elapsedBefore=0;paintTimer()}
+function setControlsDisabled(v){ for(const el of [sizeSelect,newBtn,undoBtn,clearBtn,hintBtn,revealBtn,shadeToggle,errorToggle])el.disabled=v; }
+function setBuilding(v){building=v;document.body.classList.toggle('building',v);setControlsDisabled(v);}
+function defaultNote(text){note.classList.remove('error');noteText.textContent=text||'Place one crown in each row, column, and colour. Crowns may not touch.';noteMeta.textContent='Hints explain a deduction before changing the board.';noteActions.replaceChildren();scheduleFit();}
+function setNote(text,meta='',error=false){note.classList.toggle('error',error);noteText.textContent=text;noteMeta.textContent=meta;noteActions.replaceChildren();scheduleFit();}
+function scheduleFit(){requestAnimationFrame(()=>{fitBoard();requestAnimationFrame(fitBoard)})}
+function fitBoard(){
+  const vv=window.visualViewport; const vh=vv?vv.height:window.innerHeight;
+  const bodyStyle=getComputedStyle(document.body),appStyle=getComputedStyle(app);
+  const padY=parseFloat(bodyStyle.paddingTop)+parseFloat(bodyStyle.paddingBottom);
+  const gap=parseFloat(appStyle.rowGap||appStyle.gap)||0;
+  const visibles=[masthead,toolbar,note,help].filter(x=>getComputedStyle(x).display!=='none');
+  const fixed=visibles.reduce((s,x)=>s+x.getBoundingClientRect().height,0)+gap*Math.max(0,visibles.length);
+  const coord=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--coord'))||22;
+  const widthCap=Math.min(app.clientWidth-coord,720);
+  const heightCap=vh-padY-fixed-coord-2;
+  const size=Math.max(160,Math.floor(Math.min(widthCap,heightCap)));
+  document.documentElement.style.setProperty('--board-size',`${size}px`);
+}
+function renderLabels(){
+  const N=puzzle.N;colLabels.style.gridTemplateColumns=`repeat(${N},1fr)`;rowLabels.style.gridTemplateRows=`repeat(${N},1fr)`;
+  colLabels.replaceChildren(...Array.from({length:N},(_,c)=>Object.assign(document.createElement('span'),{textContent:String.fromCharCode(65+c)})));
+  rowLabels.replaceChildren(...Array.from({length:N},(_,r)=>Object.assign(document.createElement('span'),{textContent:String(r+1)})));
+}
+function makeCell(i){
+  const N=puzzle.N,[r,c]=E.rcOf(i,N),reg=regions[i],el=document.createElement('div');
+  el.className='cell';el.dataset.index=String(i);el.setAttribute('role','gridcell');el.setAttribute('aria-label',`${E.squareName(i,N)}, ${E.REGION_NAMES[reg]} region`);
+  el.style.background=E.REGION_COLORS[reg];
+  if(r===0||regions[i-N]!==reg)el.classList.add('sep-top');
+  if(c===0||regions[i-1]!==reg)el.classList.add('sep-left');
+  return el;
+}
+function buildBoard(){
+  const N=puzzle.N;board.style.gridTemplateColumns=`repeat(${N},1fr)`;board.style.gridTemplateRows=`repeat(${N},1fr)`;
+  board.replaceChildren(...Array.from({length:N*N},(_,i)=>makeCell(i)));renderLabels();render();scheduleFit();
+}
+function makeMarkNode(mark,animate=false,autoX=false){
+  if(mark===1 || autoX){
+    const span=document.createElement('span');
+    span.className=`mark-x${autoX && mark!==1?' auto-x':''}`;
+    span.textContent='×';
+    return span;
+  }
+  if(mark===2){
+    const span=document.createElement('span');
+    span.className=`crown${animate?' just-placed':''}`;
+    span.setAttribute('aria-hidden','true');
+    span.innerHTML='<svg viewBox="0 0 64 64" focusable="false"><circle class="crown-solid" cx="32" cy="11" r="6.5"/><path class="crown-solid" d="M10 25.5c0-1.7 2-2.6 3.3-1.5l9.3 8.2 7-13.2c.9-1.7 3.3-1.7 4.2 0l7 13.2 9.3-8.2c1.3-1.1 3.3-.2 3.3 1.5 0 .25-.03.49-.1.73L48.8 45H15.2L10.1 26.23c-.07-.24-.1-.48-.1-.73Z"/><rect class="crown-solid" x="12" y="50" width="40" height="6" rx="3"/></svg>';
+    return span;
+  }
+  return null;
+}
+function deriveAutoX(candidate,mark){
+  return shadeToggle.checked && mark===0 && !candidate;
+}
+function render(){
+  if(!puzzle)return;
+  const N=puzzle.N,model=E.candidateModel(N,regions,marks),conflicts=new Set(E.findConflicts(N,regions,marks));
+  const reason=new Set(liveHint?liveHint.reason:[]),targets=new Set(liveHint?liveHint.targets:[]);
+  const badRows=new Set(),badCols=new Set(),badRegions=new Set();
+  const deferLiveErrors=!!(gesture&&gesture.touch);
+  if(errorToggle.checked&&!deferLiveErrors){
+    for(const [type,g] of E.contradictionGroups(N,regions,marks).bad){
+      if(type==='row')badRows.add(g);
+      else if(type==='column')badCols.add(g);
+      else badRegions.add(g);
+    }
+  }
+  const impossibleCells=new Uint8Array(N*N);
+  for(let i=0;i<N*N;i++){
+    const [r,c]=E.rcOf(i,N),reg=regions[i];
+    if(badRows.has(r)||badCols.has(c)||badRegions.has(reg))impossibleCells[i]=1;
+  }
+  board.classList.toggle('hinting',!!liveHint);
+  for(let i=0;i<N*N;i++){
+    const el=board.children[i],[r,c]=E.rcOf(i,N);
+    const mark=marks[i], autoX=deriveAutoX(model.cand[i],mark);
+    const impossible=!!impossibleCells[i];
+    el.classList.toggle('conflict',conflicts.has(i));
+    el.classList.toggle('impossible-group',impossible);
+    el.classList.toggle('error-edge-top',impossible&&(r===0||!impossibleCells[i-N]));
+    el.classList.toggle('error-edge-right',impossible&&(c===N-1||!impossibleCells[i+1]));
+    el.classList.toggle('error-edge-bottom',impossible&&(r===N-1||!impossibleCells[i+N]));
+    el.classList.toggle('error-edge-left',impossible&&(c===0||!impossibleCells[i-1]));
+    el.classList.toggle('spotlight',reason.has(i)||targets.has(i));
+    el.classList.toggle('hint-target',targets.has(i));
+    el.classList.toggle('win-lift',won&&mark===2);
+    el.setAttribute('aria-invalid',impossible?'true':'false');
+    if(won&&mark===2){el.style.setProperty('--win-delay',`${r*80}ms`)} else el.style.removeProperty('--win-delay');
+    const prevMark=Number(el.dataset.markState ?? -1), prevAutoX=(el.dataset.autoState==='1');
+    if(prevMark!==mark || prevAutoX!==autoX){
+      el.dataset.markState=String(mark);
+      el.dataset.autoState=autoX?'1':'0';
+      el.replaceChildren();
+      const node=makeMarkNode(mark, prevMark!==2 && mark===2, autoX);
+      if(node) el.appendChild(node);
+    }
+  }
+  for(let g=0;g<N;g++){
+    if(rowLabels.children[g])rowLabels.children[g].classList.toggle('coord-error',badRows.has(g));
+    if(colLabels.children[g])colLabels.children[g].classList.toggle('coord-error',badCols.has(g));
+  }
+  board.dataset.liveErrorCount=String(badRows.size+badCols.size+badRegions.size);
+  undoBtn.disabled=building||history.length===0;
+  hintBtn.textContent=liveHint?'Dismiss':'Hint';
+  hintCountEl.textContent=String(hintsUsed);
+}
+function commit(before){
+  if(!sameMarks(before,marks)){history.push(Int8Array.from(before));if(!timerStartedAt&&!elapsedBefore&&!revealed)startTimer();render();checkWin();return true;}render();return false;
+}
+function transaction(fn){const before=Int8Array.from(marks);dismissHint(false);fn();commit(before)}
+function dismissHint(update=true){if(!liveHint)return false;liveHint=null;if(update){defaultNote();render()}return true}
+function showHint(){
+  if(building||won)return;
+  if(liveHint){dismissHint();return;}
+  const h=E.getHint(puzzle.N,regions,marks);if(!h){setNote('No hint is available from this position.','Try undoing or clearing a few marks.',true);return;}
+  liveHint=h;note.classList.toggle('error',h.kind==='error');noteText.textContent=h.text;
+  noteMeta.textContent='Tap Hint again, press Esc, or tap anywhere on the board to dismiss without changing a mark.';
+  noteActions.replaceChildren();
+  if(h.targets.length&&!(h.kind==='error'&&h.targets.length===0)){
+    const b=document.createElement('button');b.className='primary';b.textContent='Apply';b.addEventListener('click',applyHint);noteActions.append(b);
+  }
+  render();scheduleFit();
+}
+function applyHint(){
+  if(!liveHint)return;const h=liveHint,before=Int8Array.from(marks);
+  if(h.kind==='error'){for(const i of h.targets)marks[i]=0;}
+  else if(h.kind==='crown'){for(const i of h.targets)marks[i]=2;}
+  else {for(const i of h.targets)if(marks[i]===0)marks[i]=1;}
+  liveHint=null;if(!sameMarks(before,marks))hintsUsed++;
+  defaultNote(`${h.technique} applied.`);commit(before);
+}
+function checkWin(){
+  if(revealed||won||!E.marksSolved(puzzle.N,regions,marks))return;
+  won=true;stopTimer();winStats.textContent=`${formatTime(currentElapsed())} · ${hintsUsed} hint${hintsUsed===1?'':'s'}`;winOverlay.classList.add('show');render();
+}
+function undo(){
+  if(building||!history.length)return;dismissHint(false);marks=history.pop();won=false;revealed=false;winOverlay.classList.remove('show');if(elapsedBefore>0&&!timerStartedAt)startTimer();defaultNote('Move undone.');render();
+}
+function clearBoard(){if(building)return;transaction(()=>{marks.fill(0);won=false;revealed=false;winOverlay.classList.remove('show')});defaultNote('Board cleared.');}
+function reveal(){if(building)return;transaction(()=>{for(let i=0;i<marks.length;i++)marks[i]=1;for(let r=0;r<puzzle.N;r++)marks[r*puzzle.N+puzzle.target[r]]=2;revealed=true;won=false;winOverlay.classList.remove('show');stopTimer()});setNote('Solution revealed.','Start a new puzzle when you are ready.');}
+function loadPuzzle(p){
+  puzzle=p;regions=Int16Array.from(p.regions);marks=new Int8Array(p.N*p.N);history=[];liveHint=null;revealed=false;won=false;hintsUsed=0;resetTimer();winOverlay.classList.remove('show');
+  buildBoard();defaultNote(`A unique ${p.N}×${p.N} position is ready.`);document.body.dataset.ready='true';
+}
+function newPuzzle(){
+  if(building)return;
+  dismissHint(false);setBuilding(true);document.body.dataset.ready='false';
+  const N=Number(sizeSelect.value),started=performance.now();
+  setNote(`Building a random ${N}×${N} position…`,'Generating regions, proving uniqueness, and replaying the deduction ladder.');
+  let lastUpdate=0;
+  generateRandomPuzzle(N,info=>{
+    const now=performance.now();if(now-lastUpdate<90)return;lastUpdate=now;
+    const p=info.progress||{};
+    const workerLabel=info.workers>1?` · worker ${info.worker}/${info.workers}`:'';
+    if(p.phase==='repair') noteMeta.textContent=`Random generation${workerLabel} · ${p.repairs} repairs${p.jiggles?` · ${p.jiggles} jiggles`:''}`;
+    else if(p.phase==='attempt') noteMeta.textContent=`Random generation${workerLabel} · attempt ${p.attempt}`;
+    scheduleFit();
+  }).then(p=>{
+    loadPuzzle(p);
+    const wall=Math.round(performance.now()-started);
+    noteMeta.textContent=`Random seed ${p.seed} · unique · deduction-solved in ${p.hintSteps} steps · built in ${wall} ms`;
+  }).catch(err=>{
+    console.error(err);
+    setNote('The puzzle could not be generated.',`${err&&err.message?err.message:'Unknown generation error'} Try New again or choose a smaller board.`,true);
+  }).finally(()=>{
+    terminateGenerationWorkers();setBuilding(false);render();scheduleFit();
+  });
+}
+
+function cellFromPoint(x,y){const el=document.elementFromPoint(x,y);return el&&el.closest?el.closest('.cell'):null}
+function setCell(i,value){if(i<0||i>=marks.length)return false;if(marks[i]===value)return false;marks[i]=value;return true}
+function startGesture(ev){
+  if(building||won)return;
+  ev.preventDefault();
+  if(liveHint){dismissHint();return;}
+  const cell=ev.target.closest('.cell');if(!cell)return;
+  const i=Number(cell.dataset.index),initial=marks[i],touch=ev.pointerType==='touch';
+  if(!touch&&ev.button===2){const before=Int8Array.from(marks);marks[i]=initial===2?0:2;commit(before);return;}
+  if(!touch&&ev.button!==0)return;
+  gesture={id:ev.pointerId,touch,startX:ev.clientX,startY:ev.clientY,start:i,initial,before:Int8Array.from(marks),mode:null,moved:false,held:false,last:-1,holdTimer:0,cancelled:false};
+  if(touch){
+    if(initial===0){setCell(i,1);gesture.mode='pending-mark';gesture.last=i;render();}
+    else if(initial===1)gesture.mode='pending-erase';
+    else gesture.mode='pending-crown';
+    gesture.holdTimer=setTimeout(()=>{if(gesture&&gesture.id===ev.pointerId&&!gesture.moved){gesture.held=true;gesture.mode=null;setCell(i,2);render()}},500);
+  }else{
+    if(initial===2){setCell(i,0);gesture.mode=null;}
+    else if(initial===1){gesture.mode='erase';setCell(i,0);gesture.last=i;}
+    else {gesture.mode='mark';setCell(i,1);gesture.last=i;}
+    render();
+  }
+}
+function moveGesture(ev){
+  if(!gesture||gesture.id!==ev.pointerId)return;ev.preventDefault();
+  if(gesture.touch&&!gesture.moved){
+    const d=Math.hypot(ev.clientX-gesture.startX,ev.clientY-gesture.startY);if(d<8)return;
+    gesture.moved=true;clearTimeout(gesture.holdTimer);
+    if(gesture.initial===1){gesture.mode='erase';setCell(gesture.start,0);gesture.last=gesture.start;}
+    else if(gesture.initial===0)gesture.mode='mark';
+    else gesture.mode=null;
+  }
+  const cell=cellFromPoint(ev.clientX,ev.clientY);if(!cell||!board.contains(cell))return;const i=Number(cell.dataset.index);if(i===gesture.last)return;
+  if(gesture.mode==='mark'&&marks[i]!==2)setCell(i,1);
+  else if(gesture.mode==='erase'&&marks[i]===1)setCell(i,0);
+  gesture.last=i;render();
+}
+function endGesture(ev,cancel=false){
+  if(!gesture||gesture.id!==ev.pointerId)return;ev.preventDefault();clearTimeout(gesture.holdTimer);const g=gesture;gesture=null;
+  if(cancel){marks=Int8Array.from(g.before);render();return;}
+  if(g.touch&&!g.moved&&!g.held){if(g.initial===1)setCell(g.start,2);else if(g.initial===2)setCell(g.start,0);}
+  commit(g.before);
+}
+board.addEventListener('pointerdown',startGesture);
+document.addEventListener('pointermove',moveGesture,{passive:false});
+document.addEventListener('pointerup',e=>endGesture(e,false),{passive:false});
+document.addEventListener('pointercancel',e=>endGesture(e,true),{passive:false});
+boardWrap.addEventListener('contextmenu',e=>e.preventDefault());
+shadeToggle.addEventListener('change',render);errorToggle.addEventListener('change',render);hintBtn.addEventListener('click',showHint);newBtn.addEventListener('click',newPuzzle);winNewBtn.addEventListener('click',newPuzzle);undoBtn.addEventListener('click',undo);clearBtn.addEventListener('click',clearBoard);revealBtn.addEventListener('click',reveal);sizeSelect.addEventListener('change',newPuzzle);
+window.addEventListener('resize',scheduleFit);window.addEventListener('orientationchange',scheduleFit);if(window.visualViewport)window.visualViewport.addEventListener('resize',scheduleFit);
+document.addEventListener('keydown',e=>{
+  const tag=e.target&&e.target.tagName;if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
+  if(e.key==='Escape'){if(dismissHint())e.preventDefault();return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){undo();e.preventDefault();return;}
+  if(e.key.toLowerCase()==='h'){showHint();e.preventDefault();}
+  else if(e.key.toLowerCase()==='n'){newPuzzle();e.preventDefault();}
+});
+
+window.__QUEENS_APP__={
+  getState:()=>({puzzle,marks:Array.from(marks),autoXs:Array.from(board.children).map(el=>el.dataset.autoState==='1'),history:history.map(x=>Array.from(x)),liveHint,won,revealed,hintsUsed,boardSize:board.getBoundingClientRect().width,noteBottom:note.getBoundingClientRect().bottom,viewportHeight:(visualViewport?visualViewport.height:innerHeight)}),
+  loadPuzzle,showHint,dismissHint,applyHint,undo,clearBoard,reveal,fitBoard,
+  setMarks:a=>{marks=Int8Array.from(a);render()},
+  setNote:(t,m='')=>setNote(t,m),
+  cellRect:i=>{const r=board.children[i].getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,cx:r.x+r.width/2,cy:r.y+r.height/2}},
+  generate:n=>E.generatePuzzle(n,{seed:0x51a7+n})
+};
+applyUrlOptions();
+newPuzzle();
+})();
+</script>
+</body>
+</html>
